@@ -1,0 +1,35 @@
+{
+  "name": "passport-fast-jwt",
+  "version": "1.0.0",
+  "description": "Passport authentication strategy for JSON Web Tokens using Fast-Jwt with support for EdDSA algorithm among others",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky"
+  },
+  "keywords": [
+    "passport",
+    "jwt",
+    "eddsa"
+  ],
+  "author": "Timo Mätäsaho",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.1",
+    "@types/passport": "^1.0.17",
+    "@types/passport-strategy": "^0.2.38",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "eslint-plugin-unused-imports": "^4.1.4",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.10",
+    "prettier": "^3.4.1",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.17.0"
+  },
+  "dependencies": {
+    "fast-jwt": "^5.0.0",
+    "passport-strategy": "^1.0.0"
+  }
+}
