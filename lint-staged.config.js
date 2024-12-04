@@ -5,10 +5,15 @@
 const eslintFixAll = "eslint --fix"
 const prettierFormatAll = "prettier --write"
 
+// These are ignored during lint-staged
+const ignorePatterns = [".husky/*", ".gitignore", "LICENSE"]
+
+const ignore = `!(${ignorePatterns.join("|")})`
+
 const config = {
-  // Lints and formats files ignoring files in .husky folder
-  "!(.husky/*|.gitignore)": [eslintFixAll, prettierFormatAll],
-  // In case some husky git hooks are written in js or ts lint and format those
+  // Lint all except what's specifically ignored
+  [ignore]: [eslintFixAll, prettierFormatAll],
+  // Lint only these in addition to previous "lint all except ignored"
   "./husky/*.{js,ts}": [eslintFixAll, prettierFormatAll],
 }
 

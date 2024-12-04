@@ -1,35 +1,60 @@
 {
   "name": "passport-fast-jwt",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Passport authentication strategy for JSON Web Tokens using Fast-Jwt with support for EdDSA algorithm among others",
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc",
+    "test": "mocha ./test/*.test.ts",
     "prepare": "husky"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/timjam/passport-fast-jwt"
   },
   "keywords": [
     "passport",
+    "strategy",
+    "json",
+    "web",
+    "token",
     "jwt",
+    "fast-jwt",
     "eddsa"
   ],
   "author": "Timo Mätäsaho",
   "license": "MIT",
   "devDependencies": {
+    "@types/chai": "^5.0.1",
     "@types/express": "^5.0.0",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^22.10.1",
     "@types/passport": "^1.0.17",
     "@types/passport-strategy": "^0.2.38",
+    "@types/sinon": "^17.0.3",
+    "@types/which": "^3.0.4",
+    "chai": "^5.1.2",
+    "chai-passport-strategy": "^3.0.0",
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "eslint-plugin-unused-imports": "^4.1.4",
     "husky": "^9.1.7",
     "lint-staged": "^15.2.10",
+    "mocha": "^11.0.1",
+    "node-mocks-http": "^1.16.1",
     "prettier": "^3.4.1",
+    "sinon": "^19.0.2",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.2",
-    "typescript-eslint": "^8.17.0"
+    "typescript-eslint": "^8.17.0",
+    "which": "^5.0.0"
   },
   "dependencies": {
     "fast-jwt": "^5.0.0",
     "passport-strategy": "^1.0.0"
+  },
+  "engineStrict": true,
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
