@@ -4,14 +4,6 @@ import Passport from "passport"
 import { Strategy } from "passport-strategy"
 
 import { TokenExtractor } from "./extractors"
-import { jwtVerifier } from "./verifier"
-
-type StrOptions = {
-  tokenExtractor: TokenExtractor
-} & (
-  | { secretOrKey: string | Buffer; keyFetcher?: undefined }
-  | { secretOrKey?: undefined; keyFetcher: FastJWT.KeyFetcher }
-)
 
 type JwtSections = FastJWT.DecodedJwt & { input: string }
 
@@ -37,6 +29,7 @@ type AfterVerifiedCallback = (
  * }))
  * ```
  */
+
 export class JwtStrategy extends Strategy {
   name: string
   private extractToken: TokenExtractor
@@ -45,81 +38,64 @@ export class JwtStrategy extends Strategy {
 
   constructor(
     jwtVerifier: typeof FastJWT.VerifierAsync | typeof FastJWT.VerifierSync,
-    strategyOptions: StrOptions,
+    tokenExtractor: TokenExtractor,
     afterVerifiedCb: AfterVerifiedCallback,
-  )
-  constructor(
-    fastJwtOptions: Omit<FastJWT.VerifierOptions, "complete">,
-    strategyOptions: StrOptions,
-    afterVerifiedCb: AfterVerifiedCallback,
-  )
-  constructor(
-    ...args: [
-      (
-        | Omit<FastJWT.VerifierOptions, "complete">
-        | typeof FastJWT.VerifierAsync
-        | typeof FastJWT.VerifierSync
-      ),
-      StrOptions,
-      AfterVerifiedCallback,
-    ]
   ) {
     super()
     this.name = "jwt"
 
-    const strOpts = args[1] as StrOptions
-    const verifiedCb = args[2] as AfterVerifiedCallback
-
-    this.extractToken = strOpts.tokenExtractor
-
-    this.afterVerifiedCb = verifiedCb
-
-    if (typeof args[0] === "function") {
-      this.verifyJwt = args[0]
-    } else if (args[0].constructor.name === "Object") {
-      this.verifyJwt = jwtVerifier(
-        args[0],
-        strOpts.secretOrKey,
-        strOpts.keyFetcher,
-      )
-    } else {
-      throw new Error(
-        "First argument must be either object containing fast-jwt options except 'complete' or a verfier function created with fast-jwt createVerifier",
-      )
-    }
-  }
-
-  private doneAuth: Passport.AuthenticateCallback = (
-    error,
-    user,
-    info,
-    status,
-  ) => {
-    if (error) {
-      return this.error(error)
-    }
-
-    if (!user) {
-      if (status && Array.isArray(status)) {
-        return this.fail({ info, status }, 401)
-      }
-      return this.fail(info, status ?? 401)
-    }
-
-    return this.success(user, info)
+    this.extractToken = tokenExtractor
+    this.afterVerifiedCb = afterVerifiedCb
+    this.verifyJwt = jwtVerifier
   }
 
   async authenticate(req: Express.Request): Promise<void> {
     const token = this.extractToken(req)
 
+    /**
+     * If this is not defined here and is defined as a class method instead
+     * all the calls to this. or super.error/fail/success fail with error i.e.
+     * TypeError: (intermediate value).success is not a function
+     * This is because of some really weird prototype inheritance error. Even if
+     * this was defined correctly as class method without arrow syntax.
+     */
+    const doneAuth: Passport.AuthenticateCallback = (
+      error,
+      user,
+      info,
+      status,
+    ) => {
+      if (error) {
+        return this.error(error)
+      }
+
+      if (!user) {
+        if (status && Array.isArray(status)) {
+          return this.fail({ info, status }, 401)
+        }
+        return this.fail(info, status ?? 401)
+      }
+
+      return this.success(user, info)
+    }
+
     if (!token) {
       return this.error(new Error("Auth token not found from request"))
     }
 
-    this.verifyJwt(token)
-      .then((sections: JwtSections) => {
-        this.afterVerifiedCb(sections, this.doneAuth, req)
-      })
-      .catch((error: Error) => this.fail({ error }, 401))
+    if (typeof this.verifyJwt === typeof FastJWT.VerifierAsync) {
+      this.verifyJwt(token)
+        .then((sections: JwtSections) => {
+          this.afterVerifiedCb(sections, doneAuth, req)
+        })
+        .catch((error: Error) => this.fail({ error }, 401))
+    } else {
+      try {
+        const sections = this.verifyJwt(token)
+        this.afterVerifiedCb(sections, doneAuth, req)
+      } catch (error) {
+        this.fail({ error }, 401)
+      }
+    }
   }
 }
