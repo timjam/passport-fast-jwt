@@ -1,40 +1,30 @@
-import { Request } from "express"
-import {
-  DecodedJwt,
-  KeyFetcher,
-  VerifierAsync,
-  VerifierOptions,
-  VerifierSync,
-} from "fast-jwt"
-import { AuthenticateCallback, DoneCallback } from "passport"
+import Express from "express"
+import FastJWT from "fast-jwt"
+import Passport from "passport"
 import { Strategy } from "passport-strategy"
 
 import { TokenExtractor } from "./extractors"
-import { isDefined } from "./helpers/isDefined"
 import { jwtVerifier } from "./verifier"
 
 type StrOptions = {
   tokenExtractor: TokenExtractor
-  passRequestToCallback?: boolean
 } & (
-  | { secretOrKey: string | Buffer; keyFetcher: undefined }
-  | { secretOrKey: undefined; keyFetcher: KeyFetcher }
+  | { secretOrKey: string | Buffer; keyFetcher?: undefined }
+  | { secretOrKey?: undefined; keyFetcher: FastJWT.KeyFetcher }
 )
 
-type JwtSections = DecodedJwt & { input: string }
+type JwtSections = FastJWT.DecodedJwt & { input: string }
 
-type VerifyCallback =
-  | ((jwtSections: JwtSections, done: DoneCallback) => void)
-  | ((
-      jwtSections: JwtSections,
-      doneAuth: AuthenticateCallback,
-      request?: Request,
-    ) => void)
+type AfterVerifiedCallback = (
+  jwtSections: JwtSections | FastJWT.DecodedJwt["payload"],
+  doneAuth: Passport.AuthenticateCallback,
+  request?: Express.Request,
+) => void
 
 /**
  * @example
  * ```typescript
- * passport.use(new JwtStrategy(fastJwtOpts, strategyOptions, (sections, done) => {
+ * passport.use(new JwtStrategy(fastJwtOpts, strategyOptions, (sections, done, req) => {
  *   User.findOne({ id: sections.payload.sub }, (error, user) => {
  *     if (error) {
  *       return done(err, false)
@@ -50,36 +40,68 @@ type VerifyCallback =
 export class JwtStrategy extends Strategy {
   name: string
   private extractToken: TokenExtractor
-  private passRequestToCallback: boolean
-  private verifyJwt: typeof VerifierAsync | typeof VerifierSync
-  private verifyCb: VerifyCallback
+  private verifyJwt: typeof FastJWT.VerifierAsync | typeof FastJWT.VerifierSync
+  private afterVerifiedCb: AfterVerifiedCallback
 
   constructor(
-    fastJwtOptions: Omit<VerifierOptions, "complete">,
+    jwtVerifier: typeof FastJWT.VerifierAsync | typeof FastJWT.VerifierSync,
     strategyOptions: StrOptions,
-    verifyCb: VerifyCallback,
+    afterVerifiedCb: AfterVerifiedCallback,
+  )
+  constructor(
+    fastJwtOptions: Omit<FastJWT.VerifierOptions, "complete">,
+    strategyOptions: StrOptions,
+    afterVerifiedCb: AfterVerifiedCallback,
+  )
+  constructor(
+    ...args: [
+      (
+        | Omit<FastJWT.VerifierOptions, "complete">
+        | typeof FastJWT.VerifierAsync
+        | typeof FastJWT.VerifierSync
+      ),
+      StrOptions,
+      AfterVerifiedCallback,
+    ]
   ) {
     super()
     this.name = "jwt"
-    this.extractToken = strategyOptions.tokenExtractor
-    this.passRequestToCallback = strategyOptions.passRequestToCallback ?? false
-    this.verifyJwt = jwtVerifier(
-      fastJwtOptions,
-      strategyOptions.secretOrKey,
-      strategyOptions.keyFetcher,
-    )
-    this.verifyCb = verifyCb
+
+    const strOpts = args[1] as StrOptions
+    const verifiedCb = args[2] as AfterVerifiedCallback
+
+    this.extractToken = strOpts.tokenExtractor
+
+    this.afterVerifiedCb = verifiedCb
+
+    if (typeof args[0] === "function") {
+      this.verifyJwt = args[0]
+    } else if (args[0].constructor.name === "Object") {
+      this.verifyJwt = jwtVerifier(
+        args[0],
+        strOpts.secretOrKey,
+        strOpts.keyFetcher,
+      )
+    } else {
+      throw new Error(
+        "First argument must be either object containing fast-jwt options except 'complete' or a verfier function created with fast-jwt createVerifier",
+      )
+    }
   }
 
-  private doneAuth: AuthenticateCallback = (error, user, info, status) => {
+  private doneAuth: Passport.AuthenticateCallback = (
+    error,
+    user,
+    info,
+    status,
+  ) => {
     if (error) {
       return this.error(error)
     }
 
     if (!user) {
       if (status && Array.isArray(status)) {
-        const statuses = status.filter(isDefined)
-        return this.fail({ info, statuses }, 401)
+        return this.fail({ info, status }, 401)
       }
       return this.fail(info, status ?? 401)
     }
@@ -87,7 +109,7 @@ export class JwtStrategy extends Strategy {
     return this.success(user, info)
   }
 
-  authenticate(req: Request): void {
+  async authenticate(req: Express.Request): Promise<void> {
     const token = this.extractToken(req)
 
     if (!token) {
@@ -96,11 +118,7 @@ export class JwtStrategy extends Strategy {
 
     this.verifyJwt(token)
       .then((sections: JwtSections) => {
-        if (this.passRequestToCallback) {
-          this.verifyCb(sections, this.doneAuth, req)
-        } else {
-          this.verifyCb(sections, this.doneAuth)
-        }
+        this.afterVerifiedCb(sections, this.doneAuth, req)
       })
       .catch((error: Error) => this.fail({ error }, 401))
   }
