@@ -1,10 +1,10 @@
 {
   "name": "passport-fast-jwt",
-  "version": "0.0.2",
+  "version": "0.0.15",
   "description": "Passport authentication strategy for JSON Web Tokens using Fast-Jwt with support for EdDSA algorithm among others",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "type": "module",
+  "type": "commonjs",
   "scripts": {
     "build": "tsc",
     "test": "mocha ./test/*.test.ts",
@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/timjam/passport-fast-jwt"
+    "url": "git+https://github.com/timjam/passport-fast-jwt.git"
   },
   "files": [
     "dist",
@@ -31,6 +31,7 @@
   "author": "Timo Mätäsaho",
   "license": "MIT",
   "devDependencies": {
+    "@tsconfig/recommended": "^1.0.8",
     "@types/chai": "^5.0.1",
     "@types/express": "^5.0.0",
     "@types/mocha": "^10.0.10",
