@@ -11,12 +11,6 @@ import {
   removePemFiles,
 } from "./testUtils/keyFileUtils"
 
-// create eddsa private and private key
-// for some other algos as well
-// create signers for these algos
-// generate some jwts with these signers
-// generate verifiers for these with this modules verifier factory
-
 /**
  * NOTE: Your system needs to have openssl installed in order
  * to run tests
@@ -28,6 +22,8 @@ const testToken = {
 
 const rsaKey = "rsaKey"
 const eddsaKey = "eddsaKey"
+const protKey = "protected"
+const passwd = "password"
 
 describe("Verifier tests", () => {
   let secretString: string
@@ -36,11 +32,13 @@ describe("Verifier tests", () => {
     checkOpenSSLExists()
     secretString = Crypto.createHash("sha256").digest("hex")
     await generatePemFiles(rsaKey, "rsa")
+    await generatePemFiles(protKey, "rsa", passwd)
     await generatePemFiles(eddsaKey, "ed25519")
   })
 
   after(async () => {
     await removePemFiles(rsaKey)
+    await removePemFiles(protKey)
     await removePemFiles(eddsaKey)
   })
 
@@ -74,11 +72,26 @@ describe("Verifier tests", () => {
     expect(sections.payload.iat).to.not.be.equal(null)
   })
 
-  it("Can verify with password protected keys", () => {})
+  it("Can verify with password protected keys", async () => {
+    const privateKeyFetcher = keyFetcher(`${protKey}.pem`)
+    const publicKeyFetcher = keyFetcher(`${protKey}_pub.pem`)
 
-  it("Async/Await keyfetcher works", () => {})
+    const signTokenSync = createSigner({
+      algorithm: "RS256",
+      key: {
+        key: await privateKeyFetcher(),
+        passphrase: passwd,
+      },
+    })
+    const signedToken = signTokenSync(testToken)
 
-  it("Callback style keyfetcher or secret works", () => {})
+    const verifyToken = jwtVerifier({}, undefined, publicKeyFetcher)
+    const sections = await verifyToken(signedToken)
+    expect(sections.header.alg).to.be.oneOf(["RS256", "RS384", "RS512"])
+    expect(sections.header.typ).to.be.equal("JWT")
+    expect(sections.payload.sub).to.be.equal("Tester")
+    expect(sections.payload.iat).to.not.be.equal(null)
+  })
 
   it("EdDSA algorithm is supported", async () => {
     const privateKeyFetcher = keyFetcher(`${eddsaKey}.pem`)
