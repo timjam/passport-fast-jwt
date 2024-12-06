@@ -1,5 +1,8 @@
 # Passport-Fast-JWT
 
+> [!WARNING]
+> This is still very new module. There might be a lot of issues and this might not work in every use case. If something does not work just let me know and raise an issue.
+
 A [Passport](http://passportjs.org/) strategy for authenticating with JSON Web token using [fast-jwt](https://www.npmjs.com/package/fast-jwt) library.
 
 This module relies heavily on widely used [passport-jwt](https://www.npmjs.com/package/passport-jwt) by [Mike Nicholson](https://github.com/mikenicholson), so there are many similarities. Main difference is that this is written entirely in TypeScript, uses [fast-jwt](https://www.npmjs.com/package/fast-jwt) instead of [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken) and most of all, thanks to fast-jwt, supports verifying tokens signed with EdDSA algorithm.
