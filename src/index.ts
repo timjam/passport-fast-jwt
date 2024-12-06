@@ -1,3 +1,4 @@
 import * as Extractors from "./extractors"
+import { JwtStrategy } from "./strategy"
 
-export { Extractors }
+export { Extractors, JwtStrategy }
