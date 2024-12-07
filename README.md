@@ -1,5 +1,7 @@
 # Passport-Fast-JWT
 
+![Build status](https://github.com/timjam/passport-fast-jwt/actions/workflows/runTests.yml/badge.svg?branch=main)
+
 > [!WARNING]
 > This is still very new module. There might be a lot of issues and this might not work in every use case. If something does not work just let me know and raise an issue.
 
