@@ -56,7 +56,7 @@ passport.use(new JwtStrategy(jwtVerifier, tokenExtractor, (sections, done, reque
   try {
     const user = wait User.findone({ id: sections.payload.sub })
 
-    // You can also do something with request here, if the passRequestToCallback is set to true
+    // You can also do something with request here, but it's not required
 
     if (!user) {
       return done(null, false, "User not found", 404)
