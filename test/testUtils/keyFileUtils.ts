@@ -5,10 +5,6 @@ import which from "which"
 
 type Algorithm = "rsa" | "ed25519"
 
-// export async function sleep(ms: number) {
-//   return new Promise((resolve) => setTimeout(resolve, ms))
-// }
-
 export const checkOpenSSLExists = async () => {
   const resolvedOrNull = which.sync("openssl", { nothrow: true })
 
