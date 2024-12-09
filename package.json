@@ -11,7 +11,7 @@
     "prepare": "husky",
     "preversion": "npm test",
     "version": "npm run build",
-    "postversion": "git push --tags && rm -rf dist/"
+    "postversion": "git push --tags"
   },
   "repository": {
     "type": "git",
