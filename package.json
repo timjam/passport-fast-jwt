@@ -19,12 +19,12 @@
     "README.md"
   ],
   "keywords": [
-    "passport",
-    "strategy",
-    "json",
-    "web",
-    "token",
-    "jwt",
+    "Passport",
+    "Strategy",
+    "JSON",
+    "Web",
+    "Token",
+    "JWT",
     "fast-jwt",
     "eddsa"
   ],
