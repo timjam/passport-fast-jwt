@@ -8,7 +8,10 @@
   "scripts": {
     "build": "tsc",
     "test": "mocha ./test/*.test.ts",
-    "prepare": "husky"
+    "prepare": "husky",
+    "preversion": "npm test",
+    "version": "npm run build",
+    "postversion": "git push --tags && rm -rf dist/"
   },
   "repository": {
     "type": "git",
