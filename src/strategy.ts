@@ -8,7 +8,7 @@ import { TokenExtractor } from "./extractors"
 type JwtSections = FastJWT.DecodedJwt & { input: string }
 
 type AfterVerifiedCallback = (
-  jwtSections: JwtSections | FastJWT.DecodedJwt["payload"],
+  sections: JwtSections,
   doneAuth: Passport.AuthenticateCallback,
   request?: Express.Request,
 ) => void
@@ -16,7 +16,7 @@ type AfterVerifiedCallback = (
 /**
  * @example
  * ```typescript
- * passport.use(new JwtStrategy(fastJwtOpts, strategyOptions, (sections, done, req) => {
+ * passport.use(new JwtStrategy(jwtVerifier, tokenExtractor, (sections, done, req) => {
  *   User.findOne({ id: sections.payload.sub }, (error, user) => {
  *     if (error) {
  *       return done(err, false)
@@ -85,16 +85,42 @@ export class JwtStrategy extends Strategy {
 
     if (typeof this.verifyJwt === typeof FastJWT.VerifierAsync) {
       this.verifyJwt(token)
-        .then((sections: JwtSections) => {
-          this.afterVerifiedCb(sections, doneAuth, req)
+        .then((sections: unknown) => {
+          if (sections && typeof sections === "object" && "input" in sections) {
+            this.afterVerifiedCb(sections as JwtSections, doneAuth, req)
+          } else {
+            this.afterVerifiedCb(
+              {
+                header: {},
+                payload: sections as JwtSections["payload"],
+                signature: "",
+                input: "",
+              },
+              doneAuth,
+              req,
+            )
+          }
         })
         .catch((error: Error) => this.fail({ error }, 401))
     } else {
       try {
-        const sections = this.verifyJwt(token)
-        this.afterVerifiedCb(sections, doneAuth, req)
+        const sections = await this.verifyJwt(token)
+        if (sections && typeof sections === "object" && "input" in sections) {
+          this.afterVerifiedCb(sections as JwtSections, doneAuth, req)
+        } else {
+          this.afterVerifiedCb(
+            {
+              header: {},
+              payload: sections as JwtSections["payload"],
+              signature: "",
+              input: "",
+            },
+            doneAuth,
+            req,
+          )
+        }
       } catch (error) {
-        this.fail({ error }, 401)
+        this.error(error as Error)
       }
     }
   }
