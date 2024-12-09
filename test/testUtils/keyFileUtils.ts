@@ -25,23 +25,9 @@ export const checkOpenSSLExists = async () => {
   }
 }
 
-export const filePath = (fileName: string) => {
-  // const dirname = import.meta.dirname
-  // console.log(dirname)
-  // console.log(fileName)
-
-  // const pathname = path.join(import.meta.dirname, fileName)
-  // console.log(pathname)
-  return fileName
-}
-
-// async function sleep(ms: number) {
-//   return new Promise((resolve) => setTimeout(resolve, ms))
-// }
-
 const convertKeysToPem = async (fileName: string) => {
   execSync(
-    `openssl pkey -in ${filePath(fileName)}.pem -pubout -out ${filePath(fileName)}_pub.pem 2>/dev/null`,
+    `openssl pkey -in ${fileName}.pem -pubout -out ${fileName}_pub.pem 2>/dev/null`,
   )
 }
 
@@ -52,11 +38,11 @@ const generateKeys = async (
 ) => {
   if (passwd) {
     execSync(
-      `openssl genpkey -pass pass:${passwd} -algorithm ${algorithm} -out ${filePath(fileName)}.pem 2>/dev/null `,
+      `openssl genpkey -pass pass:${passwd} -algorithm ${algorithm} -out ${fileName}.pem 2>/dev/null `,
     )
   } else {
     execSync(
-      `openssl genpkey -algorithm ${algorithm} -out ${filePath(fileName)}.pem 2>/dev/null `,
+      `openssl genpkey -algorithm ${algorithm} -out ${fileName}.pem 2>/dev/null `,
     )
   }
 }
@@ -73,12 +59,12 @@ export const generatePemFiles = async (
 export const keyFetcher =
   (fileName: string, type: "private" | "public") => async () =>
     type === "private"
-      ? fs.readFileSync(filePath(`${fileName}.pem`))
-      : fs.readFileSync(filePath(`${fileName}_pub.pem`))
+      ? fs.readFileSync(`${fileName}.pem`)
+      : fs.readFileSync(`${fileName}_pub.pem`)
 
 export const removePemFiles = async (fileName: string) => {
-  fs.rmSync(filePath(`${fileName}.pem`))
-  fs.rmSync(filePath(`${fileName}_pub.pem`))
+  fs.rmSync(`${fileName}.pem`)
+  fs.rmSync(`${fileName}_pub.pem`)
 }
 
 export const createTestKeys = async () => {
@@ -101,7 +87,7 @@ export const createTestTokens = async () => {
    * must be the key itself and can not be a fetcher
    */
 
-  const protectedKey = fs.readFileSync(filePath(`${RSA_PROTECTED}.pem`))
+  const protectedKey = fs.readFileSync(`${RSA_PROTECTED}.pem`)
 
   const rsaSign = createSigner({
     algorithm: "RS256",
