@@ -111,7 +111,6 @@ export class JwtStrategy extends Strategy {
     } else {
       try {
         const sections = await this.verifyJwt(token)
-        console.log(JSON.stringify({ sections }, null, 2))
         if (
           sections &&
           typeof sections === "object" &&
