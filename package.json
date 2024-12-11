@@ -1,6 +1,6 @@
 {
   "name": "passport-fast-jwt",
-  "version": "0.0.22",
+  "version": "0.0.23",
   "description": "Passport authentication strategy for JSON Web Tokens using Fast-Jwt with support for EdDSA algorithm among others",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
