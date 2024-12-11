@@ -6,7 +6,8 @@
   "types": "dist/index.d.ts",
   "type": "commonjs",
   "scripts": {
-    "build": "rm -rf ./dist && tsc",
+    "build": "npm run clean && tsc",
+    "clean": "rm -rf dist/",
     "test": "mocha ./test/*.test.ts",
     "prepare": "husky",
     "preversion": "npm test",
