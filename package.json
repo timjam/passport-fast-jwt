@@ -6,7 +6,7 @@
   "types": "dist/index.d.ts",
   "type": "commonjs",
   "scripts": {
-    "build": "tsc",
+    "build": "rm -rf ./dist && tsc",
     "test": "mocha ./test/*.test.ts",
     "prepare": "husky",
     "preversion": "npm test",
@@ -59,7 +59,7 @@
     "which": "^5.0.0"
   },
   "dependencies": {
-    "fast-jwt": "^5.0.0",
+    "fast-jwt": "^5.0.1",
     "passport-strategy": "^1.0.0"
   },
   "engineStrict": true,

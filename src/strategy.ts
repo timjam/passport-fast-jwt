@@ -5,7 +5,7 @@ import { Strategy } from "passport-strategy"
 
 import { TokenExtractor } from "./extractors"
 
-type JwtSections = FastJWT.DecodedJwt
+export type JwtSections = FastJWT.DecodedJwt & { input: string }
 
 type AfterVerifiedCallback = (
   sections: JwtSections,
@@ -100,6 +100,7 @@ export class JwtStrategy extends Strategy {
                 header: {},
                 payload: sections as JwtSections["payload"],
                 signature: "",
+                input: "",
               },
               doneAuth,
               req,
@@ -110,6 +111,7 @@ export class JwtStrategy extends Strategy {
     } else {
       try {
         const sections = await this.verifyJwt(token)
+        console.log(JSON.stringify({ sections }, null, 2))
         if (
           sections &&
           typeof sections === "object" &&
@@ -124,6 +126,7 @@ export class JwtStrategy extends Strategy {
               header: {},
               payload: sections as JwtSections["payload"],
               signature: "",
+              input: "",
             },
             doneAuth,
             req,

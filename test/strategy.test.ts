@@ -1,9 +1,8 @@
 import { use } from "chai"
 import chaiPassportStrategy from "chai-passport-strategy"
-import { DecodedJwt } from "fast-jwt"
 
 import { fromAuthHeaderAsBearerToken, fromHeader } from "../src/extractors"
-import { JwtStrategy } from "../src/strategy"
+import { JwtSections, JwtStrategy } from "../src/strategy"
 import {
   createTestKeys,
   createTestTokens,
@@ -237,7 +236,7 @@ describe("JWT Strategy tests", () => {
   })
 
   describe("Verifier with complete set to true correctly returns all sections", () => {
-    let sections: DecodedJwt | null = null
+    let sections: JwtSections | null = null
 
     before(() => {
       const strategy = new JwtStrategy(
@@ -264,12 +263,16 @@ describe("JWT Strategy tests", () => {
       chai.expect(Object.keys(sections!)).to.include("header")
       chai.expect(Object.keys(sections!)).to.include("payload")
       chai.expect(Object.keys(sections!)).to.include("signature")
-      chai.expect(Object.keys(sections!)).to.not.include("input")
+      chai.expect(Object.keys(sections!)).to.include("input")
+
+      chai.assert.deepEqual(sections!.header, { alg: "EdDSA", typ: "JWT" })
+      chai.expect(sections!.payload.sub).to.be.equal(testTokenPayload.sub)
+      chai.expect(sections!.input).to.be.equal(testTokens.eddsaUnprotectedToken)
     })
   })
 
   describe("Verifier with complete set to false returns only the payload and others are empty", () => {
-    let sections: DecodedJwt | null = null
+    let sections: JwtSections | null = null
 
     before(() => {
       const strategy = new JwtStrategy(
@@ -291,16 +294,17 @@ describe("JWT Strategy tests", () => {
         .authenticate()
     })
 
-    it("Section should contain headers, payload and signature properties when complete is true", () => {
+    it("Only section payload should have content when complete is set to false", () => {
       chai.expect(sections).to.be.not.equal(null)
       chai.expect(Object.keys(sections!)).to.include("header")
       chai.expect(Object.keys(sections!)).to.include("payload")
       chai.expect(Object.keys(sections!)).to.include("signature")
-      chai.expect(Object.keys(sections!)).to.not.include("input")
+      chai.expect(Object.keys(sections!)).to.include("input")
 
       chai.assert.deepEqual(sections!.header, {})
       chai.expect(sections!.signature).to.be.equal("")
       chai.expect(sections!.payload.sub).to.be.equal(testTokenPayload.sub)
+      chai.expect(sections!.input).to.be.equal("")
     })
   })
 })
