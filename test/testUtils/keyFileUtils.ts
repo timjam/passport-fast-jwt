@@ -134,3 +134,8 @@ export const rsaNoPassVerify = createVerifier({
 export const eddsaNoPassVerify = createVerifier({
   key: keyFetcher(EDDSA_NO_PASS, "public"),
 })
+
+export const eddsaComplete = createVerifier({
+  key: keyFetcher(EDDSA_NO_PASS, "public"),
+  complete: true,
+})

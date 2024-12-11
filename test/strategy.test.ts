@@ -1,5 +1,6 @@
 import { use } from "chai"
 import chaiPassportStrategy from "chai-passport-strategy"
+import { DecodedJwt } from "fast-jwt"
 
 import { fromAuthHeaderAsBearerToken, fromHeader } from "../src/extractors"
 import { JwtStrategy } from "../src/strategy"
@@ -7,6 +8,7 @@ import {
   createTestKeys,
   createTestTokens,
   deleteTestKeys,
+  eddsaComplete,
   eddsaNoPassVerify,
   rsaNoPassVerify,
   rsaVerify,
@@ -231,6 +233,74 @@ describe("JWT Strategy tests", () => {
 
       chai.expect(info).to.be.equal("User not found")
       chai.expect(status).to.be.equal(404)
+    })
+  })
+
+  describe("Verifier with complete set to true correctly returns all sections", () => {
+    let sections: DecodedJwt | null = null
+
+    before(() => {
+      const strategy = new JwtStrategy(
+        eddsaComplete,
+        fromAuthHeaderAsBearerToken(),
+        (jwtSections, done) => {
+          sections = jwtSections
+          return done(null, "Test user")
+        },
+      )
+
+      // @ts-expect-error no types exist for chai-passport-strategy
+      chai.passport
+        .use(strategy)
+        .request((req) => {
+          req.headers["authorization"] =
+            `Bearer ${testTokens.eddsaUnprotectedToken}`
+        })
+        .authenticate()
+    })
+
+    it("Section should contain headers, payload and signature properties when complete is true", () => {
+      chai.expect(sections).to.be.not.equal(null)
+      chai.expect(Object.keys(sections!)).to.include("header")
+      chai.expect(Object.keys(sections!)).to.include("payload")
+      chai.expect(Object.keys(sections!)).to.include("signature")
+      chai.expect(Object.keys(sections!)).to.not.include("input")
+    })
+  })
+
+  describe("Verifier with complete set to false returns only the payload and others are empty", () => {
+    let sections: DecodedJwt | null = null
+
+    before(() => {
+      const strategy = new JwtStrategy(
+        eddsaNoPassVerify,
+        fromAuthHeaderAsBearerToken(),
+        (jwtSections, done) => {
+          sections = jwtSections
+          return done(null, "Test user")
+        },
+      )
+
+      // @ts-expect-error no types exist for chai-passport-strategy
+      chai.passport
+        .use(strategy)
+        .request((req) => {
+          req.headers["authorization"] =
+            `Bearer ${testTokens.eddsaUnprotectedToken}`
+        })
+        .authenticate()
+    })
+
+    it("Section should contain headers, payload and signature properties when complete is true", () => {
+      chai.expect(sections).to.be.not.equal(null)
+      chai.expect(Object.keys(sections!)).to.include("header")
+      chai.expect(Object.keys(sections!)).to.include("payload")
+      chai.expect(Object.keys(sections!)).to.include("signature")
+      chai.expect(Object.keys(sections!)).to.not.include("input")
+
+      chai.assert.deepEqual(sections!.header, {})
+      chai.expect(sections!.signature).to.be.equal("")
+      chai.expect(sections!.payload.sub).to.be.equal(testTokenPayload.sub)
     })
   })
 })
