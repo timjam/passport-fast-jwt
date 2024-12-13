@@ -1,11 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { use } from "chai"
 import chaiPassportStrategy from "chai-passport-strategy"
-import { TokenError } from "fast-jwt"
 
 import { fromAuthHeaderAsBearerToken, fromHeader } from "../src/extractors"
 import { JwtStrategy } from "../src/strategy"
-import { AfterVerifyCallback, CBWithError, JwtSections } from "../src/types"
+import { JwtSections } from "../src/types"
 import {
   createTestKeys,
   createTestTokens,
@@ -36,14 +34,10 @@ describe("JWT Strategy tests", () => {
     let info = null
 
     before(() => {
-      const strategy = new JwtStrategy<CBWithError>(
+      const strategy = new JwtStrategy(
         rsaVerify,
-        { tokenExtractor: fromHeader("token") },
-        (error, sections, done) => {
-          if (error) {
-            throw new Error("There shouldn't be error this time")
-          }
-
+        fromHeader("token"),
+        (sections, done) => {
           const user = sections.payload.sub
           return done(null, user, { message: "Random test info" })
         },
@@ -75,9 +69,9 @@ describe("JWT Strategy tests", () => {
     let info = null
 
     before(() => {
-      const strategy = new JwtStrategy<AfterVerifyCallback>(
+      const strategy = new JwtStrategy(
         rsaNoPassVerify,
-        { tokenExtractor: fromAuthHeaderAsBearerToken() },
+        fromAuthHeaderAsBearerToken(),
         (sections, done) => {
           const user = sections.payload.sub
           return done(null, user, { message: "Random test info" })
@@ -113,7 +107,7 @@ describe("JWT Strategy tests", () => {
     before(() => {
       const strategy = new JwtStrategy(
         eddsaNoPassVerify,
-        { tokenExtractor: fromAuthHeaderAsBearerToken() },
+        fromAuthHeaderAsBearerToken(),
         (sections, done) => {
           const user = sections.payload.sub
           return done(null, user, { message: "Random test info" })
@@ -142,110 +136,6 @@ describe("JWT Strategy tests", () => {
     })
   })
 
-  describe("Errors in authentication are passed to error object and bubbled up when using callback with error delegation", () => {
-    /**
-     * Token signed with EdDSA is verified with RSA key
-     */
-    let user = null
-    let info = null
-    let error: any = null
-
-    before(() => {
-      const strategy = new JwtStrategy<CBWithError>(
-        rsaNoPassVerify,
-        { tokenExtractor: fromAuthHeaderAsBearerToken() },
-        (err, sections, done) => {
-          if (!err) {
-            return done(null, sections.payload.sub)
-          }
-          error = err
-          return
-        },
-      )
-
-      // @ts-expect-error no types exist for chai-passport-strategy
-      chai.passport
-        .use(strategy)
-        .request((req) => {
-          req.headers["authorization"] =
-            `Bearer ${testTokens.eddsaUnprotectedToken}`
-        })
-        .success((u, i) => {
-          user = u
-          info = i
-        })
-        .error(() => {
-          error = "This should never be assigned"
-        })
-        .authenticate()
-    })
-
-    it("Should err when verifying token with wrong key", () => {
-      chai.expect(user).to.be.equal(null)
-      chai.expect(info).to.be.equal(null)
-      chai.expect(error).to.be.not.equal(null)
-      chai.expect(error).to.be.instanceOf(TokenError)
-      chai.expect(error).to.be.instanceOf(Error)
-    })
-  })
-
-  describe("Errors in authentication are failed silently when using callback without error delegation", () => {
-    /**
-     * Token signed with EdDSA is verified with RSA key
-     */
-    let user = null
-    let info = null
-    let error: any = null
-    let challenge = null
-    let status: number | null = null
-
-    before(() => {
-      const strategy = new JwtStrategy<AfterVerifyCallback>(
-        rsaNoPassVerify,
-        { tokenExtractor: fromAuthHeaderAsBearerToken() },
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        async (sections, done) => {
-          // Does not matter what's here, because the jwt verification
-          // in JwtStrategy itself is going to fail and this is not called
-          // when error is not delegated from strategy to this callback
-        },
-      )
-
-      // @ts-expect-error no types exist for chai-passport-strategy
-      chai.passport
-        .use(strategy)
-        .request((req) => {
-          req.headers["authorization"] =
-            `Bearer ${testTokens.eddsaUnprotectedToken}`
-        })
-        .success((u, i) => {
-          user = u
-          info = i
-        })
-        .fail((c: any, s: number) => {
-          challenge = c
-          status = s
-        })
-        .error((e) => {
-          console.log(JSON.stringify({ e }, null, 2))
-          error = "This should never be assigned"
-        })
-        .authenticate()
-    })
-
-    it("Passport calls fail method correctly", () => {
-      chai.expect(user).to.be.equal(null)
-      chai.expect(info).to.be.equal(null)
-      chai.expect(error).to.be.equal(null)
-      chai.expect(challenge).to.be.not.equal(null)
-      chai.expect(status).to.be.not.equal(null)
-      chai.assert.deepEqual(challenge, {
-        message: "The token algorithm is invalid.",
-        type: "FAST_JWT_INVALID_ALGORITHM",
-      })
-    })
-  })
-
   describe("Failed authentications are handled correctly", () => {
     let error = null
     let user = null
@@ -255,7 +145,7 @@ describe("JWT Strategy tests", () => {
     before(() => {
       const strategy = new JwtStrategy(
         eddsaNoPassVerify,
-        { tokenExtractor: fromAuthHeaderAsBearerToken() },
+        fromAuthHeaderAsBearerToken(),
         (sections, done) => {
           try {
             const user = undefined // Mocking that can not find user from the db
@@ -309,7 +199,7 @@ describe("JWT Strategy tests", () => {
     before(() => {
       const strategy = new JwtStrategy(
         eddsaComplete,
-        { tokenExtractor: fromAuthHeaderAsBearerToken() },
+        fromAuthHeaderAsBearerToken(),
         (jwtSections, done) => {
           sections = jwtSections
           return done(null, "Test user")
@@ -345,7 +235,7 @@ describe("JWT Strategy tests", () => {
     before(() => {
       const strategy = new JwtStrategy(
         eddsaNoPassVerify,
-        { tokenExtractor: fromAuthHeaderAsBearerToken() },
+        fromAuthHeaderAsBearerToken(),
         (jwtSections, done) => {
           sections = jwtSections
           return done(null, "Test user")
@@ -376,13 +266,13 @@ describe("JWT Strategy tests", () => {
     })
   })
 
-  describe.only("Custom callback", () => {
+  describe("Custom callback", () => {
     let sections: JwtSections | null = null
 
     before(() => {
       const strategy = new JwtStrategy(
         eddsaNoPassVerify,
-        { tokenExtractor: fromAuthHeaderAsBearerToken() },
+        fromAuthHeaderAsBearerToken(),
         (jwtSections, done) => {
           sections = jwtSections
           return done(null, "Test user")

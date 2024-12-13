@@ -1,14 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import Express from "express"
-import FastJWT, { TokenError } from "fast-jwt"
+import { createVerifier, TokenError } from "fast-jwt"
 import Passport from "passport"
 import { Strategy } from "passport-strategy"
 
-import { createSections } from "./helpers/createSections"
 import {
   AfterVerifyCallback,
-  PassportFastJwtOpts,
+  CArgs,
+  JwtSections,
   TokenExtractor,
+  Verifier,
+  VerifierOptions,
 } from "./types"
 
 /**
@@ -25,36 +27,69 @@ import {
  *     return done(null, user)
  *   })
  * }))
+ *
+ * // *-----------* OR *-----------*
+ *
+ * passport.use(new JwtStrategy(verifierOptions, tokenExtractor, (sections, done, req) => {
+ *   User.findOne({ id: sections.payload.sub }, (error, user) => {
+ *     if (error) {
+ *       return done(err, false)
+ *     }
+ *     if (!user) {
+ *       return done(null, false, "User not found", 404)
+ *     }
+ *     return done(null, user)
+ *   })
+ * }))
  * ```
  */
 
 export class JwtStrategy extends Strategy {
   name: string
-  private passReqToCallback: boolean
   private extractToken: TokenExtractor
-  private verifyJwt: typeof FastJWT.VerifierSync
+  private verifyJwt: Verifier
   private afterVerifiedCb: AfterVerifyCallback
 
   constructor(
-    jwtVerifier: typeof FastJWT.VerifierSync,
-    options: PassportFastJwtOpts,
+    verifierOptions: VerifierOptions,
+    tokenExtractor: TokenExtractor,
     afterVerifiedCb: AfterVerifyCallback,
-  ) {
+  )
+  constructor(
+    jwtVerifier: Verifier,
+    tokenExtractor: TokenExtractor,
+    afterVerifiedCb: AfterVerifyCallback,
+  )
+  constructor(...args: CArgs) {
     super()
     this.name = "jwt"
 
-    this.extractToken = options.tokenExtractor
-    this.afterVerifiedCb = afterVerifiedCb
-    this.verifyJwt = jwtVerifier
-    this.passReqToCallback = options.passReqToCallback ?? false
+    if (typeof args[0] === "function") {
+      this.verifyJwt = args[0]
+    } else {
+      const { key, ...opts } = args[0]
+
+      // Just making TS happy here
+      if (typeof key === "string" || key instanceof Buffer) {
+        this.verifyJwt = createVerifier({ ...opts, key })
+      } else {
+        this.verifyJwt = createVerifier({ ...opts, key })
+      }
+    }
+    this.extractToken = args[1]
+    this.afterVerifiedCb = args[2]
   }
 
-  // private isErrorHandler() {
-  //   if (this.afterVerifiedCb.length === 4) return true
-  //   if (this.afterVerifiedCb.length === 3 && !this.passReqToCallback)
-  //     return true
-  //   return false
-  // }
+  private createSections(
+    sections: JwtSections | JwtSections["payload"],
+  ): JwtSections {
+    return {
+      header: sections?.header ?? {},
+      payload: sections?.payload ?? sections,
+      signature: sections?.signature ?? "",
+      input: sections?.input ?? "",
+    }
+  }
 
   async authenticate(req: Express.Request): Promise<void> {
     /**
@@ -89,37 +124,24 @@ export class JwtStrategy extends Strategy {
       const token = this.extractToken(req)
 
       if (!token) {
-        throw new TokenError("Auth token not found from request")
+        throw new Error("Auth token not found from request")
       }
 
       const sections = await this.verifyJwt(token)
 
-      this.afterVerifiedCb(createSections(sections), doneAuth, req)
-
-      // if (this.isErrorHandler()) {
-      //   ;(this.afterVerifiedCb as CBWithError)(
-      //     null,
-      //     createSections(sections),
-      //     doneAuth,
-      //     req,
-      //   )
-      // } else {
-      //   ;(this.afterVerifiedCb as CBWithoutError)(
-      //     createSections(sections),
-      //     doneAuth,
-      //     req,
-      //   )
-      // }
+      this.afterVerifiedCb(this.createSections(sections), doneAuth, req)
     } catch (error) {
-      // if (this.isErrorHandler()) {
-      //   ;(this.afterVerifiedCb as CBWithError)(
-      //     error,
-      //     createSections(undefined),
-      //     doneAuth,
-      //     req,
-      //   )
-      // } else {
       if (error instanceof TokenError) {
+        /**
+         * Without this passport strips away everything
+         * except the code from TokenError. I guess it has
+         * something to do with Fast-JWT TokenError
+         * implementation
+         *
+         * Do note that after the this.error call
+         * the error is no longer an instance of
+         * TokenError or Error, but just a simple object
+         */
         const message = error.message
         const code = error.code
         const name = error.name
@@ -129,7 +151,6 @@ export class JwtStrategy extends Strategy {
       } else {
         this.error(error as any)
       }
-      // }
     }
   }
 }

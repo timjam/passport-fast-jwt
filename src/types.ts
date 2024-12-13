@@ -9,25 +9,25 @@ export type TokenExtractor = (
 
 export type JwtSections = FastJWT.DecodedJwt & { input: string }
 
-export type CBWithoutError = (
+export type AfterVerifyCallback = (
   sections: JwtSections,
   doneAuth: Passport.AuthenticateCallback,
   request?: Express.Request,
 ) => void
 
-export type CBWithError = (
-  verificationError: any,
-  sections: JwtSections,
-  doneAuth: Passport.AuthenticateCallback,
-  request?: Express.Request,
-) => void
-
-export type PassportFastJwtOpts = {
-  tokenExtractor: TokenExtractor
-  passReqToCallback?: boolean
+export type VerifierOptions = FastJWT.VerifierOptions & {
+  key?:
+    | string
+    | Buffer
+    | ((DecodedJwt: FastJWT.DecodedJwt) => Promise<string | Buffer>)
 }
 
-export type PassportFastJwtChallenge = {
-  message: string
-  type: FastJWT.TokenValidationErrorCode
-}
+export type Verifier =
+  | typeof FastJWT.VerifierSync
+  | ((token: string | Buffer) => Promise<any>)
+
+export type CArgs = [
+  VerifierOptions | Verifier,
+  TokenExtractor,
+  AfterVerifyCallback,
+]
