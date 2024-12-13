@@ -28,24 +28,27 @@ yarn add passport-fast-jwt
 The first argument is a JWT verifier function created with fast-jwt `createVerifier`.
 
 ```typescript
-type TokenExtractor = (request: Request) => string | undefined | null
+type JwtSections = FastJWT.DecodedJwt & { input: string }
 
-type AfterVerifiedCallback = (
-  jwtSections:
-    | (FastJWT.DecodedJwt & { input: string })
-    | FastJWT.DecodedJwt["payload"],
+type CBWithoutError = (
+  sections: JwtSections,
+  doneAuth: Passport.AuthenticateCallback,
+  request?: Express.Request,
+) => void
+
+type CBWithError = (
+  verificationError: any,
+  sections: JwtSections,
   doneAuth: Passport.AuthenticateCallback,
   request?: Express.Request,
 ) => void
 ```
 
-The constructor has two overloads
-
 ```typescript
   constructor(
-    jwtVerifier: typeof FastJWT.VerifierAsync | typeof FastJWT.VerifierSync,
+    jwtVerifier: typeof FastJWT.VerifierSync,
     tokenExtractor: TokenExtractor,
-    afterVerifiedCb: AfterVerifiedCallback,
+    afterVerifiedCb: CBWithoutError | CBWithError
   )
 ```
 
@@ -54,7 +57,7 @@ The constructor has two overloads
 const tokenExtractor = Extractors.fromAuthHeaderAsBearerToken()
 const jwtVerifier = createVerifier(fastJwtOptions)
 
-passport.use(new JwtStrategy(jwtVerifier, tokenExtractor, (sections, done, request) => {
+passport.use(new JwtStrategy(jwtVerifier, { tokenExtractor }, (sections, done, request) => {
   try {
     const user = wait User.findone({ id: sections.payload.sub })
 

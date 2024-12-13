@@ -1,8 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { use } from "chai"
 import chaiPassportStrategy from "chai-passport-strategy"
+import { TokenError } from "fast-jwt"
 
 import { fromAuthHeaderAsBearerToken, fromHeader } from "../src/extractors"
-import { JwtSections, JwtStrategy } from "../src/strategy"
+import { JwtStrategy } from "../src/strategy"
+import { AfterVerifyCallback, CBWithError, JwtSections } from "../src/types"
 import {
   createTestKeys,
   createTestTokens,
@@ -33,10 +36,14 @@ describe("JWT Strategy tests", () => {
     let info = null
 
     before(() => {
-      const strategy = new JwtStrategy(
+      const strategy = new JwtStrategy<CBWithError>(
         rsaVerify,
-        fromHeader("token"),
-        (sections, done) => {
+        { tokenExtractor: fromHeader("token") },
+        (error, sections, done) => {
+          if (error) {
+            throw new Error("There shouldn't be error this time")
+          }
+
           const user = sections.payload.sub
           return done(null, user, { message: "Random test info" })
         },
@@ -68,9 +75,9 @@ describe("JWT Strategy tests", () => {
     let info = null
 
     before(() => {
-      const strategy = new JwtStrategy(
+      const strategy = new JwtStrategy<AfterVerifyCallback>(
         rsaNoPassVerify,
-        fromAuthHeaderAsBearerToken(),
+        { tokenExtractor: fromAuthHeaderAsBearerToken() },
         (sections, done) => {
           const user = sections.payload.sub
           return done(null, user, { message: "Random test info" })
@@ -106,7 +113,7 @@ describe("JWT Strategy tests", () => {
     before(() => {
       const strategy = new JwtStrategy(
         eddsaNoPassVerify,
-        fromAuthHeaderAsBearerToken(),
+        { tokenExtractor: fromAuthHeaderAsBearerToken() },
         (sections, done) => {
           const user = sections.payload.sub
           return done(null, user, { message: "Random test info" })
@@ -135,21 +142,24 @@ describe("JWT Strategy tests", () => {
     })
   })
 
-  describe("Erring authentications are handled correctly", () => {
+  describe("Errors in authentication are passed to error object and bubbled up when using callback with error delegation", () => {
     /**
      * Token signed with EdDSA is verified with RSA key
      */
     let user = null
     let info = null
-    let error = null
+    let error: any = null
 
     before(() => {
-      const strategy = new JwtStrategy(
+      const strategy = new JwtStrategy<CBWithError>(
         rsaNoPassVerify,
-        fromAuthHeaderAsBearerToken(),
-        (sections, done) => {
-          // Does not matter what's here when the verification itself errs
-          return done(null, sections.payload.sub)
+        { tokenExtractor: fromAuthHeaderAsBearerToken() },
+        (err, sections, done) => {
+          if (!err) {
+            return done(null, sections.payload.sub)
+          }
+          error = err
+          return
         },
       )
 
@@ -164,8 +174,8 @@ describe("JWT Strategy tests", () => {
           user = u
           info = i
         })
-        .error((e) => {
-          error = e
+        .error(() => {
+          error = "This should never be assigned"
         })
         .authenticate()
     })
@@ -174,7 +184,65 @@ describe("JWT Strategy tests", () => {
       chai.expect(user).to.be.equal(null)
       chai.expect(info).to.be.equal(null)
       chai.expect(error).to.be.not.equal(null)
+      chai.expect(error).to.be.instanceOf(TokenError)
       chai.expect(error).to.be.instanceOf(Error)
+    })
+  })
+
+  describe("Errors in authentication are failed silently when using callback without error delegation", () => {
+    /**
+     * Token signed with EdDSA is verified with RSA key
+     */
+    let user = null
+    let info = null
+    let error: any = null
+    let challenge = null
+    let status: number | null = null
+
+    before(() => {
+      const strategy = new JwtStrategy<AfterVerifyCallback>(
+        rsaNoPassVerify,
+        { tokenExtractor: fromAuthHeaderAsBearerToken() },
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        async (sections, done) => {
+          // Does not matter what's here, because the jwt verification
+          // in JwtStrategy itself is going to fail and this is not called
+          // when error is not delegated from strategy to this callback
+        },
+      )
+
+      // @ts-expect-error no types exist for chai-passport-strategy
+      chai.passport
+        .use(strategy)
+        .request((req) => {
+          req.headers["authorization"] =
+            `Bearer ${testTokens.eddsaUnprotectedToken}`
+        })
+        .success((u, i) => {
+          user = u
+          info = i
+        })
+        .fail((c: any, s: number) => {
+          challenge = c
+          status = s
+        })
+        .error((e) => {
+          console.log(JSON.stringify({ e }, null, 2))
+          error = "This should never be assigned"
+        })
+        .authenticate()
+    })
+
+    it("Passport calls fail method correctly", () => {
+      chai.expect(user).to.be.equal(null)
+      chai.expect(info).to.be.equal(null)
+      chai.expect(error).to.be.equal(null)
+      chai.expect(challenge).to.be.not.equal(null)
+      chai.expect(status).to.be.not.equal(null)
+      chai.assert.deepEqual(challenge, {
+        message: "The token algorithm is invalid.",
+        type: "FAST_JWT_INVALID_ALGORITHM",
+      })
     })
   })
 
@@ -187,7 +255,7 @@ describe("JWT Strategy tests", () => {
     before(() => {
       const strategy = new JwtStrategy(
         eddsaNoPassVerify,
-        fromAuthHeaderAsBearerToken(),
+        { tokenExtractor: fromAuthHeaderAsBearerToken() },
         (sections, done) => {
           try {
             const user = undefined // Mocking that can not find user from the db
@@ -241,7 +309,7 @@ describe("JWT Strategy tests", () => {
     before(() => {
       const strategy = new JwtStrategy(
         eddsaComplete,
-        fromAuthHeaderAsBearerToken(),
+        { tokenExtractor: fromAuthHeaderAsBearerToken() },
         (jwtSections, done) => {
           sections = jwtSections
           return done(null, "Test user")
@@ -277,7 +345,7 @@ describe("JWT Strategy tests", () => {
     before(() => {
       const strategy = new JwtStrategy(
         eddsaNoPassVerify,
-        fromAuthHeaderAsBearerToken(),
+        { tokenExtractor: fromAuthHeaderAsBearerToken() },
         (jwtSections, done) => {
           sections = jwtSections
           return done(null, "Test user")
@@ -292,6 +360,45 @@ describe("JWT Strategy tests", () => {
             `Bearer ${testTokens.eddsaUnprotectedToken}`
         })
         .authenticate()
+    })
+
+    it("Only section payload should have content when complete is set to false", () => {
+      chai.expect(sections).to.be.not.equal(null)
+      chai.expect(Object.keys(sections!)).to.include("header")
+      chai.expect(Object.keys(sections!)).to.include("payload")
+      chai.expect(Object.keys(sections!)).to.include("signature")
+      chai.expect(Object.keys(sections!)).to.include("input")
+
+      chai.assert.deepEqual(sections!.header, {})
+      chai.expect(sections!.signature).to.be.equal("")
+      chai.expect(sections!.payload.sub).to.be.equal(testTokenPayload.sub)
+      chai.expect(sections!.input).to.be.equal("")
+    })
+  })
+
+  describe.only("Custom callback", () => {
+    let sections: JwtSections | null = null
+
+    before(() => {
+      const strategy = new JwtStrategy(
+        eddsaNoPassVerify,
+        { tokenExtractor: fromAuthHeaderAsBearerToken() },
+        (jwtSections, done) => {
+          sections = jwtSections
+          return done(null, "Test user")
+        },
+      )
+
+      // @ts-expect-error no types exist for chai-passport-strategy
+      chai.passport
+        .use(strategy)
+        .request((req) => {
+          req.headers["authorization"] =
+            `Bearer ${testTokens.eddsaUnprotectedToken}`
+        })
+        .authenticate("jwt", (error, user, info) => {
+          console.log(JSON.stringify({ error, user, info }, null, 2))
+        })
     })
 
     it("Only section payload should have content when complete is set to false", () => {

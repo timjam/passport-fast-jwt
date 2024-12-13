@@ -1,17 +1,15 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import Express from "express"
-import FastJWT from "fast-jwt"
+import FastJWT, { TokenError } from "fast-jwt"
 import Passport from "passport"
 import { Strategy } from "passport-strategy"
 
-import { TokenExtractor } from "./extractors"
-
-export type JwtSections = FastJWT.DecodedJwt & { input: string }
-
-type AfterVerifiedCallback = (
-  sections: JwtSections,
-  doneAuth: Passport.AuthenticateCallback,
-  request?: Express.Request,
-) => void
+import { createSections } from "./helpers/createSections"
+import {
+  AfterVerifyCallback,
+  PassportFastJwtOpts,
+  TokenExtractor,
+} from "./types"
 
 /**
  * @example
@@ -32,26 +30,33 @@ type AfterVerifiedCallback = (
 
 export class JwtStrategy extends Strategy {
   name: string
+  private passReqToCallback: boolean
   private extractToken: TokenExtractor
-  private verifyJwt: typeof FastJWT.VerifierAsync | typeof FastJWT.VerifierSync
-  private afterVerifiedCb: AfterVerifiedCallback
+  private verifyJwt: typeof FastJWT.VerifierSync
+  private afterVerifiedCb: AfterVerifyCallback
 
   constructor(
-    jwtVerifier: typeof FastJWT.VerifierAsync | typeof FastJWT.VerifierSync,
-    tokenExtractor: TokenExtractor,
-    afterVerifiedCb: AfterVerifiedCallback,
+    jwtVerifier: typeof FastJWT.VerifierSync,
+    options: PassportFastJwtOpts,
+    afterVerifiedCb: AfterVerifyCallback,
   ) {
     super()
     this.name = "jwt"
 
-    this.extractToken = tokenExtractor
+    this.extractToken = options.tokenExtractor
     this.afterVerifiedCb = afterVerifiedCb
     this.verifyJwt = jwtVerifier
+    this.passReqToCallback = options.passReqToCallback ?? false
   }
 
-  async authenticate(req: Express.Request): Promise<void> {
-    const token = this.extractToken(req)
+  // private isErrorHandler() {
+  //   if (this.afterVerifiedCb.length === 4) return true
+  //   if (this.afterVerifiedCb.length === 3 && !this.passReqToCallback)
+  //     return true
+  //   return false
+  // }
 
+  async authenticate(req: Express.Request): Promise<void> {
     /**
      * If this is not defined here and is defined as a class method instead
      * all the calls to this. or super.error/fail/success fail with error i.e.
@@ -79,61 +84,52 @@ export class JwtStrategy extends Strategy {
       return this.success(user, info)
     }
 
-    if (!token) {
-      return this.error(new Error("Auth token not found from request"))
-    }
+    // Actual implementation
+    try {
+      const token = this.extractToken(req)
 
-    if (typeof this.verifyJwt === typeof FastJWT.VerifierAsync) {
-      this.verifyJwt(token)
-        .then((sections: unknown) => {
-          if (
-            sections &&
-            typeof sections === "object" &&
-            "signature" in sections &&
-            "header" in sections &&
-            "payload" in sections
-          ) {
-            this.afterVerifiedCb(sections as JwtSections, doneAuth, req)
-          } else {
-            this.afterVerifiedCb(
-              {
-                header: {},
-                payload: sections as JwtSections["payload"],
-                signature: "",
-                input: "",
-              },
-              doneAuth,
-              req,
-            )
-          }
-        })
-        .catch((error: Error) => this.fail({ error }, 401))
-    } else {
-      try {
-        const sections = await this.verifyJwt(token)
-        if (
-          sections &&
-          typeof sections === "object" &&
-          "signature" in sections &&
-          "header" in sections &&
-          "payload" in sections
-        ) {
-          this.afterVerifiedCb(sections as JwtSections, doneAuth, req)
-        } else {
-          this.afterVerifiedCb(
-            {
-              header: {},
-              payload: sections as JwtSections["payload"],
-              signature: "",
-              input: "",
-            },
-            doneAuth,
-            req,
-          )
-        }
-      } catch (error) {
-        this.error(error as Error)
+      if (!token) {
+        throw new TokenError("Auth token not found from request")
       }
+
+      const sections = await this.verifyJwt(token)
+
+      this.afterVerifiedCb(createSections(sections), doneAuth, req)
+
+      // if (this.isErrorHandler()) {
+      //   ;(this.afterVerifiedCb as CBWithError)(
+      //     null,
+      //     createSections(sections),
+      //     doneAuth,
+      //     req,
+      //   )
+      // } else {
+      //   ;(this.afterVerifiedCb as CBWithoutError)(
+      //     createSections(sections),
+      //     doneAuth,
+      //     req,
+      //   )
+      // }
+    } catch (error) {
+      // if (this.isErrorHandler()) {
+      //   ;(this.afterVerifiedCb as CBWithError)(
+      //     error,
+      //     createSections(undefined),
+      //     doneAuth,
+      //     req,
+      //   )
+      // } else {
+      if (error instanceof TokenError) {
+        const message = error.message
+        const code = error.code
+        const name = error.name
+        const stack = error.stack
+
+        this.error({ message, code, name, stack } as any)
+      } else {
+        this.error(error as any)
+      }
+      // }
     }
   }
 }

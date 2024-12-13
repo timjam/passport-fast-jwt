@@ -2,8 +2,7 @@ import { Request } from "express"
 
 import { isDefined } from "./helpers/isDefined"
 import { parseAuthHeader } from "./helpers/parseAuthHeader"
-
-export type TokenExtractor = (request: Request) => string | undefined | null
+import { TokenExtractor } from "./types"
 
 const AUTH_HEADER = "authorization"
 const BEARER_AUTH_SCHEME = "bearer"
