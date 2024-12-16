@@ -25,65 +25,74 @@ yarn add passport-fast-jwt
 
 ## Usage
 
-The first argument is a JWT verifier function created with fast-jwt `createVerifier`.
+The first argument is a JWT verifier function created with fast-jwt `createVerifier` or alternatively options to be used when creating one. If the options are passed, the strategy creates a verifier function using `fast-jwt` with the given options. You can read more about verifier options from [fast-jwt docs](https://github.com/nearform/fast-jwt?tab=readme-ov-file#createverifier).
 
 ```typescript
-type JwtSections = FastJWT.DecodedJwt & { input: string }
+type ConstructionArgumentss = [
+  VerifierOptions | Verifier,
+  TokenExtractor,
+  AfterVerifyCallback,
+]
 
-type CBWithoutError = (
-  sections: JwtSections,
+type VerifierOptions = FastJWT.VerifierOptions & {
+  key?:
+    | string
+    | Buffer
+    | ((DecodedJwt: FastJWT.DecodedJwt) => Promise<string | Buffer>)
+}
+
+type Verifier =
+  | typeof FastJWT.VerifierSync
+  | ((token: string | Buffer) => Promise<any>)
+
+type TokenExtractor = (request: Express.Request) => string | undefined | null
+
+type AfterVerifyCallback = (
+  sections: FastJWT.DecodedJwt,
   doneAuth: Passport.AuthenticateCallback,
   request?: Express.Request,
 ) => void
-
-type CBWithError = (
-  verificationError: any,
-  sections: JwtSections,
-  doneAuth: Passport.AuthenticateCallback,
-  request?: Express.Request,
-) => void
 ```
 
 ```typescript
-  constructor(
-    jwtVerifier: typeof FastJWT.VerifierSync,
-    tokenExtractor: TokenExtractor,
-    afterVerifiedCb: CBWithoutError | CBWithError
-  )
+const jwtVerifier = FastJWT.createVerifier({ ...verifierOptions })
+const tokenExtractor = Extractors.fromHeader("token-header")
+
+passport.use(
+  new JwtStrategy(jwtVerifier, tokenExtractor, (sections, done, req) => {
+    User.findOne({ id: sections.payload.sub }, (error, user) => {
+      if (error) {
+        return done(err, false)
+      }
+      if (!user) {
+        return done(null, false, "User not found", 404)
+      }
+      return done(null, user)
+    })
+  }),
+)
+// *-----------* OR *-----------*
+const verifierOptions = { key: async () => "secret", cache: true }
+const tokenExtractor = Extractors.fromHeader("token-header")
+
+passport.use(
+  new JwtStrategy(verifierOptions, tokenExtractor, (sections, done, req) => {
+    User.findOne({ id: sections.payload.sub }, (error, user) => {
+      if (error) {
+        return done(err, false)
+      }
+      if (!user) {
+        return done(null, false, "User not found", 404)
+      }
+      return done(null, user)
+    })
+  }),
+)
 ```
 
-```typescript
+### Fast-JWT createVerifier options
 
-const tokenExtractor = Extractors.fromAuthHeaderAsBearerToken()
-const jwtVerifier = createVerifier(fastJwtOptions)
-
-passport.use(new JwtStrategy(jwtVerifier, { tokenExtractor }, (sections, done, request) => {
-  try {
-    const user = wait User.findone({ id: sections.payload.sub })
-
-    // You can also do something with request here, but it's not required
-
-    if (!user) {
-      return done(null, false, "User not found", 404)
-    }
-
-    return done(null, user)
-  } catch (error) {
-    return done(error, false)
-  }
-}))
-```
-
-### Fast-JWT options
-
-All [Fast-JWT verifier options](https://github.com/nearform/fast-jwt?tab=readme-ov-file#createverifier) can be passed as the `fastJwtOptions`. However, all options combinations haven't been tested, so proceed with caution. If you find any problems with some options, please raise an issue.
-
-### Strategy options
-
-| Option         | Type                                                      | Required | Description                                                                                                                                                                                                                                                  |
-| -------------- | --------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| jwtVerifier    | FastJWT.VerifierAsync \| FastJWT.VerifierSync             | required | Verifier function created with fast-jwt `createVerifier` function                                                                                                                                                                                            |
-| tokenExtractor | (request: Express.Request) => string \| undefined \| null | required | Function to extract the token from the request. There are some predefined token extractors in the module `fromHeader`, `fromBodyField`, `fromQueryParam`, `fromAuthHeaderAsBearerToken (=== fromAuthHeaderWithScheme("bearer"))`, `fromAuthHeaderWithScheme` |
+All [Fast-JWT verifier options](https://github.com/nearform/fast-jwt?tab=readme-ov-file#createverifier) can be passed as the `fastJwtOptions`. However, all options combinations haven't been tested yet, so proceed with caution. If you find any problems with some options, please raise an issue.
 
 ### Verification callback
 
@@ -109,6 +118,25 @@ passport.use(
       return done(null, user)
     })
   }),
+)
+```
+
+## Error handling
+
+Like any other strategy, this also passes any internal error happening in the strategy, practically any error happening during the JWT verification, directly into the Express next function. If you like to have more control over this you can wrap the strategy into a custom middleware function
+
+```typescript
+someRouter.use("/someRoute", (req, res, next) =>
+  passport.authenticate(
+    "jwt",
+    { session: false },
+    (err: any, user: Express.User, info: any) => {
+      if (err) {
+        console.log("Error happened, need to do something to it")
+        next(err)
+      }
+    },
+  )(req, res, next),
 )
 ```
 
