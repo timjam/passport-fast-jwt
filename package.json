@@ -60,7 +60,7 @@
     "which": "^5.0.0"
   },
   "dependencies": {
-    "fast-jwt": "^5.0.1",
+    "fast-jwt": "^5.0.2",
     "passport-strategy": "^1.0.0"
   },
   "engineStrict": true,
