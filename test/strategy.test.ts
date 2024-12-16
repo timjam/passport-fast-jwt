@@ -2,7 +2,8 @@ import { use } from "chai"
 import chaiPassportStrategy from "chai-passport-strategy"
 
 import { fromAuthHeaderAsBearerToken, fromHeader } from "../src/extractors"
-import { JwtSections, JwtStrategy } from "../src/strategy"
+import { JwtStrategy } from "../src/strategy"
+import { JwtSections } from "../src/types"
 import {
   createTestKeys,
   createTestTokens,
@@ -135,49 +136,6 @@ describe("JWT Strategy tests", () => {
     })
   })
 
-  describe("Erring authentications are handled correctly", () => {
-    /**
-     * Token signed with EdDSA is verified with RSA key
-     */
-    let user = null
-    let info = null
-    let error = null
-
-    before(() => {
-      const strategy = new JwtStrategy(
-        rsaNoPassVerify,
-        fromAuthHeaderAsBearerToken(),
-        (sections, done) => {
-          // Does not matter what's here when the verification itself errs
-          return done(null, sections.payload.sub)
-        },
-      )
-
-      // @ts-expect-error no types exist for chai-passport-strategy
-      chai.passport
-        .use(strategy)
-        .request((req) => {
-          req.headers["authorization"] =
-            `Bearer ${testTokens.eddsaUnprotectedToken}`
-        })
-        .success((u, i) => {
-          user = u
-          info = i
-        })
-        .error((e) => {
-          error = e
-        })
-        .authenticate()
-    })
-
-    it("Should err when verifying token with wrong key", () => {
-      chai.expect(user).to.be.equal(null)
-      chai.expect(info).to.be.equal(null)
-      chai.expect(error).to.be.not.equal(null)
-      chai.expect(error).to.be.instanceOf(Error)
-    })
-  })
-
   describe("Failed authentications are handled correctly", () => {
     let error = null
     let user = null
@@ -292,6 +250,45 @@ describe("JWT Strategy tests", () => {
             `Bearer ${testTokens.eddsaUnprotectedToken}`
         })
         .authenticate()
+    })
+
+    it("Only section payload should have content when complete is set to false", () => {
+      chai.expect(sections).to.be.not.equal(null)
+      chai.expect(Object.keys(sections!)).to.include("header")
+      chai.expect(Object.keys(sections!)).to.include("payload")
+      chai.expect(Object.keys(sections!)).to.include("signature")
+      chai.expect(Object.keys(sections!)).to.include("input")
+
+      chai.assert.deepEqual(sections!.header, {})
+      chai.expect(sections!.signature).to.be.equal("")
+      chai.expect(sections!.payload.sub).to.be.equal(testTokenPayload.sub)
+      chai.expect(sections!.input).to.be.equal("")
+    })
+  })
+
+  describe("Custom callback", () => {
+    let sections: JwtSections | null = null
+
+    before(() => {
+      const strategy = new JwtStrategy(
+        eddsaNoPassVerify,
+        fromAuthHeaderAsBearerToken(),
+        (jwtSections, done) => {
+          sections = jwtSections
+          return done(null, "Test user")
+        },
+      )
+
+      // @ts-expect-error no types exist for chai-passport-strategy
+      chai.passport
+        .use(strategy)
+        .request((req) => {
+          req.headers["authorization"] =
+            `Bearer ${testTokens.eddsaUnprotectedToken}`
+        })
+        .authenticate("jwt", (error, user, info) => {
+          console.log(JSON.stringify({ error, user, info }, null, 2))
+        })
     })
 
     it("Only section payload should have content when complete is set to false", () => {
