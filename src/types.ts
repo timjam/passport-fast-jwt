@@ -7,10 +7,8 @@ export type TokenExtractor = (
   request: Express.Request,
 ) => string | undefined | null
 
-export type JwtSections = FastJWT.DecodedJwt & { input: string }
-
 export type AfterVerifyCallback = (
-  sections: JwtSections,
+  sections: FastJWT.DecodedJwt,
   doneAuth: Passport.AuthenticateCallback,
   request?: Express.Request,
 ) => void

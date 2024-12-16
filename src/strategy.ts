@@ -1,13 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import Express from "express"
-import { createVerifier, TokenError } from "fast-jwt"
+import FastJWT from "fast-jwt"
 import Passport from "passport"
-import { Strategy } from "passport-strategy"
+import PassportStrategy from "passport-strategy"
 
 import {
   AfterVerifyCallback,
   CArgs,
-  JwtSections,
   TokenExtractor,
   Verifier,
   VerifierOptions,
@@ -44,7 +43,7 @@ import {
  * ```
  */
 
-export class JwtStrategy extends Strategy {
+export class JwtStrategy extends PassportStrategy.Strategy {
   name: string
   private extractToken: TokenExtractor
   private verifyJwt: Verifier
@@ -81,8 +80,8 @@ export class JwtStrategy extends Strategy {
   }
 
   private createSections(
-    sections: JwtSections | JwtSections["payload"],
-  ): JwtSections {
+    sections: FastJWT.DecodedJwt | FastJWT.DecodedJwt["payload"],
+  ): FastJWT.DecodedJwt {
     return {
       header: sections?.header ?? {},
       payload: sections?.payload ?? sections,
@@ -131,7 +130,7 @@ export class JwtStrategy extends Strategy {
 
       this.afterVerifiedCb(this.createSections(sections), doneAuth, req)
     } catch (error) {
-      if (error instanceof TokenError) {
+      if (error instanceof FastJWT.TokenError) {
         /**
          * Without this passport strips away everything
          * except the code from TokenError. I guess it has
