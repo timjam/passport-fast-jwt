@@ -68,11 +68,28 @@ export class JwtStrategy extends PassportStrategy.Strategy {
     } else {
       const { key, ...opts } = args[0]
 
-      // Just making TS happy here
-      if (typeof key === "string" || key instanceof Buffer) {
-        this.verifyJwt = createVerifier({ ...opts, key })
+      /**
+       * Just making TS happy here
+       *
+       * If algorithms is "none", the key must not be provided
+       */
+      if (opts.algorithms?.includes("none")) {
+        if (key) {
+          console.warn(
+            "Key was provided even though algorithms include none. Fast JWT says that if no algorithm is used, they key must not be provided. Thus the provided key parameter will be removed from verifier options",
+          )
+        }
+        this.verifyJwt = FastJWT.createVerifier({ ...opts })
+      } else if (typeof key === "string" || key instanceof Buffer) {
+        this.verifyJwt = FastJWT.createVerifier({
+          ...opts,
+          key: key as string | Buffer,
+        })
       } else {
-        this.verifyJwt = createVerifier({ ...opts, key })
+        this.verifyJwt = FastJWT.createVerifier({
+          ...opts,
+          key: key as FastJWT.KeyFetcher,
+        })
       }
     }
     this.extractToken = args[1]
