@@ -19,11 +19,18 @@ const fromRequestProp =
 
     return null
   }
-
+/**
+ * Constructs a token extractor function with the given authentication scheme
+ * and authentication header name.
+ *
+ * @param authScheme
+ * @param authHeaderName
+ * @returns
+ */
 export const fromAuthHeaderWithScheme =
-  (authScheme: string): TokenExtractor =>
+  (authHeaderName: string, authScheme: string): TokenExtractor =>
   (request: Request) => {
-    const authHeader = request.headers[AUTH_HEADER]
+    const authHeader = request.headers[authHeaderName]
 
     if (authHeader) {
       const authParam = parseAuthHeader(authHeader)
@@ -44,15 +51,31 @@ export const fromBodyField = fromRequestProp("body")
 
 export const fromQueryParam = fromRequestProp("query")
 
+/**
+ * A ready made token extractor for 'Authorization' header
+ * with 'Bearer' scheme. This is shorthand for
+ *
+ * @example
+ * fromAuthHeaderWithScheme('authorization', 'bearer')
+ *
+ * @returns Token extractor for bearer authorization scheme
+ */
 export const fromAuthHeaderAsBearerToken = () =>
-  fromAuthHeaderWithScheme(BEARER_AUTH_SCHEME)
+  fromAuthHeaderWithScheme(AUTH_HEADER, BEARER_AUTH_SCHEME)
 
 /**
  * Takes in an array of valid extractors and returns an extractor that runs all the given extractors
  * against the request and tries to find a token. Returns the first token found. Extractors are
  * run in the order they are given in the array.
  * @param extractors An array of valid extractor functions
- * @returns
+ * @returns token as string if some of the extractors finds a token, otherwise null
+ *
+ * @example
+ * fromExtractors([
+ *   fromAuthHeaderAsBearerToken(),
+ *   fromAuthHeaderWithScheme('x-authorization', 'bearer'),
+ *   fromBodyField('token')
+ * ])
  */
 export const fromExtractors =
   (extractors: TokenExtractor[]) => (request: Request) => {
