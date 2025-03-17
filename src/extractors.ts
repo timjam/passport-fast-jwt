@@ -21,9 +21,9 @@ const fromRequestProp =
   }
 
 export const fromAuthHeaderWithScheme =
-  (authScheme: string): TokenExtractor =>
+  (authHeaderName: string, authScheme: string): TokenExtractor =>
   (request: Request) => {
-    const authHeader = request.headers[AUTH_HEADER]
+    const authHeader = request.headers[authHeaderName]
 
     if (authHeader) {
       const authParam = parseAuthHeader(authHeader)
@@ -45,7 +45,7 @@ export const fromBodyField = fromRequestProp("body")
 export const fromQueryParam = fromRequestProp("query")
 
 export const fromAuthHeaderAsBearerToken = () =>
-  fromAuthHeaderWithScheme(BEARER_AUTH_SCHEME)
+  fromAuthHeaderWithScheme(AUTH_HEADER, BEARER_AUTH_SCHEME)
 
 /**
  * Takes in an array of valid extractors and returns an extractor that runs all the given extractors
