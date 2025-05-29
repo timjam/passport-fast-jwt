@@ -47,7 +47,7 @@
     "which": "^5.0.0"
   },
   "dependencies": {
-    "fast-jwt": "^5.0.2",
+    "fast-jwt": "^5.0.6",
     "passport-strategy": "^1.0.0"
   },
   "engineStrict": true,
