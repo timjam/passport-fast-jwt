@@ -55,6 +55,6 @@ jobs:
           key: ${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: npm ci
       - run: npm run build
-      - run: npm publish --provenance --access public
+      - run: npm publish --provenance
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.GA_NPM_PUBLISH_TOKEN }}
