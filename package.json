@@ -9,7 +9,7 @@
     "build": "npm run clean && tsc",
     "clean": "rm -rf dist/",
     "test": "mocha ./test/*.test.ts",
-    "prepare": "husky",
+    "husky": "husky",
     "preversion": "npm test",
     "version": "npm run build",
     "postversion": "git push --tags && git push"
@@ -19,8 +19,7 @@
     "url": "git+https://github.com/timjam/passport-fast-jwt.git"
   },
   "files": [
-    "dist",
-    "README.md"
+    "dist"
   ],
   "keywords": [
     "Passport",
