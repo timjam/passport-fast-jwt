@@ -1,5 +1,5 @@
 name: Publish package to npmjs
-run-name: Publish package ${{ github.event.workflow_run.head_branch }}
+run-name: Publish package
 on:
   workflow_run:
     workflows: ["Test"]
@@ -15,7 +15,20 @@ jobs:
       contents: read
       id-token: write
     steps:
+      - name: Get artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: tag
+
+      - name: Get tag from artifact
+        id: get-tag
+        run: |
+          tag=$(cat tag.txt)
+          echo "tag=$tag" >> $GITHUB_OUTPUT
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: refs/tags/${{ steps.get-tag.outputs.tag }}
       # Setup .npmrc file to publish to npm
       - uses: actions/setup-node@v4
         with:

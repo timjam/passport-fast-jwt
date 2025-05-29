@@ -1,9 +1,12 @@
 name: Test
-run-name: Test package ${{ github.event.release.tag_name }}
 on:
-  release:
-    types: [published]
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version tag to test"
+        required: true
+
+run-name: Testing version ${{ github.event.inputs.version }}
 
 jobs:
   test-module:
@@ -11,18 +14,20 @@ jobs:
     steps:
       - name: Checkout the code
         uses: actions/checkout@v4
+      - name: Test
+        run: echo "shit"
+      - name: Pass chosen version to artifacts
+        run: echo "${{ github.event.inputs.version }}" > tag.txt
+      - name: Upload tag.txt as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tag
+          path: tag.txt
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20.x"
           registry-url: "https://registry.npmjs.org"
-      - name: Echo cache dir
-        run: echo ${{ toJSON(steps) }}
-      - name: Echo event
-        run: |
-          echo ${{ github.event }}
-          echo ${{ github.event_name }}
-          echo ${{ github.event.release.tag_name }}
       - name: Cache npm dependencies
         uses: actions/cache@v4
         with:
