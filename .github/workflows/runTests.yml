@@ -1,4 +1,5 @@
 name: Test package before publishing
+run-name: Test package
 on:
   release:
     types: [published]
