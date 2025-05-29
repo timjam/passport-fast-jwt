@@ -3,7 +3,7 @@ on:
   release:
     types: [published]
   workflow_run:
-    workflows: ["Test package ${{ github.event.release.tag_name }}"]
+    workflows: ["Test package"]
     branches: [main]
     types:
       - completed
