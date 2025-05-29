@@ -1,0 +1,51 @@
+name: "Hello World"
+description: "Greet someone"
+inputs:
+  release-to-publish:
+    description: "What release to publish"
+    required: true
+# outputs:
+#   random-number:
+#     description: "Random number"
+#     value: ${{ steps.random-number-generator.outputs.random-number }}
+runs:
+  using: "composite"
+  steps:
+    # - name: Set Greeting
+    #   run: echo "Hello $INPUT_WHO_TO_GREET."
+    #   shell: bash
+    #   env:
+    #     INPUT_WHO_TO_GREET: ${{ inputs.who-to-greet }}
+
+    # - name: Random Number Generator
+    #   id: random-number-generator
+    #   run: echo "random-number=$(echo $RANDOM)" >> $GITHUB_OUTPUT
+    #   shell: bash
+
+    # - name: Set GitHub Path
+    #   run: echo "$GITHUB_ACTION_PATH" >> $GITHUB_PATH
+    #   shell: bash
+    #   env:
+    #     GITHUB_ACTION_PATH: ${{ github.action_path }}
+
+    # - name: Run goodbye.sh
+    #   run: goodbye.sh
+    #   shell: bash
+
+    - name: Checkout the code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        ref: refs/tags/${{ inputs.release-to-publish }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20.x"
+        registry-url: "https://registry.npmjs.org"
+
+    - name: Cache npm dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-${{ hashFiles('package-lock.json') }}
