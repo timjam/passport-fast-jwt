@@ -55,3 +55,8 @@ jobs:
           npm publish --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GA_NPM_PUBLISH_TOKEN }}
+
+      - name: Publish the package to GitHub Packages
+        run: npm publish --registry=https://npm.pkg.github.com/ --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN}}

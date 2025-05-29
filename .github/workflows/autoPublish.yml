@@ -44,12 +44,19 @@ jobs:
       - name: Run tests for built package
         run: npm run test:build
 
-      - name: Publish the package to npm
+      - name: Clean package.json for publishing
         run: |
           npm pkg delete scripts
           npm pkg delete devDependencies
           npm pkg delete engines
           npm pkg delete engineStrict
-          npm publish --provenance
+
+      - name: Publish the package to npm
+        run: npm publish --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GA_NPM_PUBLISH_TOKEN }}
+
+      - name: Publish the package to GitHub Packages
+        run: npm publish --registry=https://npm.pkg.github.com/ --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN}}
