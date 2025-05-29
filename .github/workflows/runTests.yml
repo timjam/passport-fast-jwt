@@ -1,4 +1,4 @@
-name: Tests
+name: Test package before publishing
 on:
   release:
     types: [published]
