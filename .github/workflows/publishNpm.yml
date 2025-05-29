@@ -1,11 +1,7 @@
 name: Publish Package to npmjs
 on:
-  release:
-    types: [published]
-  workflow_dispatch:
   workflow_run:
     workflows: [runTests]
-    branches: [main]
     types:
       - completed
 jobs:
