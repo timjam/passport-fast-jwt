@@ -22,21 +22,10 @@ yarn add passport-fast-jwt
 
 ## Usage
 
-The first argument is a JWT verifier function created with fast-jwt `createVerifier` or alternatively options to be used when creating one. If the options are passed, the strategy creates a verifier function using `fast-jwt` with the given options. You can read more about verifier options from [fast-jwt docs](https://github.com/nearform/fast-jwt?tab=readme-ov-file#createverifier).
+The first argument must be a JWT verifier function created with fast-jwt `createVerifier`. You can read more about creating verifier from [fast-jwt docs](https://github.com/nearform/fast-jwt?tab=readme-ov-file#createverifier).
 
 ```typescript
-type ConstructionArgumentss = [
-  VerifierOptions | Verifier,
-  TokenExtractor,
-  AfterVerifyCallback,
-]
-
-type VerifierOptions = FastJWT.VerifierOptions & {
-  key?:
-    | string
-    | Buffer
-    | ((DecodedJwt: FastJWT.DecodedJwt) => Promise<string | Buffer>)
-}
+type ConstructionArgumentss = [Verifier, TokenExtractor, AfterVerifyCallback]
 
 type Verifier =
   | typeof FastJWT.VerifierSync
@@ -68,34 +57,7 @@ passport.use(
     })
   }),
 )
-// *-----------* OR *-----------*
-const verifierOptions = { key: async () => "secret", cache: true }
-const tokenExtractor1 = Extractors.fromHeader("token-header")
-const tokenExtractor2 = Extractors.fromAuthHeaderWithScheme(
-  "x-authorization",
-  "x-bearer",
-)
-
-const tokenExtractors = fromExtractors([tokenExtractor1, tokenExtractor2])
-
-passport.use(
-  new JwtStrategy(verifierOptions, tokenExtractors, (sections, done, req) => {
-    User.findOne({ id: sections.payload.sub }, (error, user) => {
-      if (error) {
-        return done(err, false)
-      }
-      if (!user) {
-        return done(null, false, "User not found", 404)
-      }
-      return done(null, user)
-    })
-  }),
-)
 ```
-
-### Fast-JWT createVerifier options
-
-All [Fast-JWT verifier options](https://github.com/nearform/fast-jwt?tab=readme-ov-file#createverifier) can be passed as the `fastJwtOptions`. However, all options combinations haven't been tested yet, so proceed with caution. If you find any problems with some options, please raise an issue.
 
 ### Verification callback
 
@@ -135,7 +97,7 @@ someRouter.use("/someRoute", (req, res, next) =>
     { session: false },
     (err: any, user: Express.User, info: any) => {
       if (err) {
-        console.log("Error happened, need to do something to it")
+        console.error("Error happened, need to do something to it")
         next(err)
       }
     },
