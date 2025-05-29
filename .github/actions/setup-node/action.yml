@@ -4,6 +4,9 @@ inputs:
   node-version:
     description: "What node version to use"
     required: true
+  release-to-publish:
+    description: "Release version tag to publish"
+    required: true
 # outputs:
 #   random-number:
 #     description: "Random number"
@@ -32,11 +35,11 @@ runs:
     #   run: goodbye.sh
     #   shell: bash
 
-    # - name: Checkout the code
-    #   uses: actions/checkout@v4
-    #   with:
-    #     fetch-depth: 0
-    #     ref: refs/tags/${{ inputs.release-to-publish }}
+    - name: Checkout the code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        ref: refs/tags/${{ inputs.release-to-publish }}
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
