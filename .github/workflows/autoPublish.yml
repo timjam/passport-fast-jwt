@@ -56,6 +56,11 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GA_NPM_PUBLISH_TOKEN }}
 
+      - name: Setup Node for GHP and install from cache if exists
+        uses: ./.github/actions/setup-node
+        with:
+          registry-url: "https://npm.pkg.github.com"
+
       - name: Publish the package to GitHub Packages
         run: npm publish --registry=https://npm.pkg.github.com/ --provenance
         env:
