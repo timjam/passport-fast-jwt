@@ -1,6 +1,7 @@
 # Passport-Fast-JWT
 
-![Build status](https://github.com/timjam/passport-fast-jwt/actions/workflows/runTests.yml/badge.svg?branch=main)
+![Build status](https://github.com/timjam/passport-fast-jwt/actions/workflows/autoPublish.yml/badge.svg?branch=main)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
 A [Passport](http://passportjs.org/) strategy for authenticating with JSON Web tokens using [fast-jwt](https://www.npmjs.com/package/fast-jwt) library.
 
