@@ -10,7 +10,8 @@
   "scripts": {
     "build": "npm run clean && tsc",
     "clean": "rm -rf dist/",
-    "test": "mocha ./test/*.test.ts",
+    "test:source": "mocha ./test/for-source/*.test.ts",
+    "test:build": "mocha ./test/for-build/*.test.ts",
     "husky": "husky",
     "preversion": "npm test",
     "version": "npm run build",
