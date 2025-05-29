@@ -44,6 +44,11 @@ jobs:
         run: npm run build
 
       - name: Publish the package to npm
-        run: npm publish --provenance
+        run: |
+          npm pkg delete scripts
+          npm pkg delete devDependencies
+          npm pkg delete engines
+          npm pkg delete engineStrict
+          npm publish --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GA_NPM_PUBLISH_TOKEN }}
