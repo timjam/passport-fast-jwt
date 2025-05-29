@@ -1,4 +1,4 @@
-name: Test package before publishing
+name: Test
 run-name: Test package ${{ github.event.release.tag_name }}
 on:
   release:
