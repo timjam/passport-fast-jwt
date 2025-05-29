@@ -17,22 +17,10 @@ jobs:
         with:
           fetch-depth: 0
           ref: refs/tags/${{ github.event.inputs.version }}
-      # - name: Setup Node.js
-      #   uses: actions/setup-node@v4
-      #   with:
-      #     node-version: "20.x"
-      #     registry-url: "https://registry.npmjs.org"
-      # - name: Cache npm dependencies
-      #   uses: actions/cache@v4
-      #   with:
-      #     path: ~/.npm
-      #     key: ${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      - name: Checkout the code and setup Node.js
+
+      - name: Setup Node and install from cache if exists
         uses: ./.github/actions/setup-node
-        with:
-          node--version: "20.x"
-      - name: Install dependencies
-        run: npm ci
+
       - name: Run tests
         run: npm run test
 
@@ -43,22 +31,19 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout the code
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: refs/tags/${{ github.event.inputs.version }}
-      # Setup .npmrc file to publish to npm
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20.x"
-          registry-url: "https://registry.npmjs.org"
-      - name: Read npm dependencies from cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      - run: npm ci
-      - run: npm run build
-      - run: npm publish --provenance
+
+      - name: Setup Node and install from cache if exists
+        uses: ./.github/actions/setup-node
+
+      - name: Build the package
+        run: npm run build
+
+      - name: Publish the package to npm
+        run: npm publish --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GA_NPM_PUBLISH_TOKEN }}
