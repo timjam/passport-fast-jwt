@@ -6,7 +6,13 @@ const eslintFixAll = "eslint --fix"
 const prettierFormatAll = "prettier --write"
 
 // These are ignored during lint-staged
-const ignorePatterns = [".husky/*", ".gitignore", "LICENSE", ".npmignore"]
+const ignorePatterns = [
+  ".husky/*",
+  ".gitignore",
+  "LICENSE",
+  ".npmignore",
+  ".nvmrc",
+]
 
 const ignore = `!(${ignorePatterns.join("|")})`
 
