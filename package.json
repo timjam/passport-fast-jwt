@@ -13,7 +13,7 @@
     "test:source": "mocha ./test/for-source/*.test.ts",
     "test:build": "mocha ./test/for-build/*.test.ts",
     "husky": "husky",
-    "preversion": "npm test",
+    "preversion": "npm run test:source",
     "version": "npm run build",
     "postversion": "git push --tags && git push"
   },
