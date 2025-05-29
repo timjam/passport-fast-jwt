@@ -1,7 +1,8 @@
-name: Publish Package to npmjs
+name: Publish package to npmjs
+run-name: Publish package ${{ github.event.workflow_run.head_branch }}
 on:
   workflow_run:
-    workflows: [Test]
+    workflows: ["Test"]
     branches: [main]
     types:
       - completed
