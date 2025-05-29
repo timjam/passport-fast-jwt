@@ -21,8 +21,8 @@ jobs:
       - name: Setup Node and install from cache if exists
         uses: ./.github/actions/setup-node
 
-      - name: Run tests
-        run: npm run test
+      - name: Run tests for source
+        run: npm run test:source
 
   publish-package:
     needs: test-module
@@ -42,6 +42,9 @@ jobs:
 
       - name: Build the package
         run: npm run build
+
+      - name: Run tests for built package
+        run: npm run test:build
 
       - name: Publish the package to npm
         run: |
