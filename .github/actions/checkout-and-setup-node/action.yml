@@ -3,6 +3,10 @@ description: "Greet someone"
 inputs:
   node-version:
     description: "What node version to use"
+    required: false
+    default: "20.x"
+  release-to-publish:
+    description: "Release version tag to publish"
     required: true
 # outputs:
 #   random-number:
@@ -32,11 +36,11 @@ runs:
     #   run: goodbye.sh
     #   shell: bash
 
-    # - name: Checkout the code
-    #   uses: actions/checkout@v4
-    #   with:
-    #     fetch-depth: 0
-    #     ref: refs/tags/${{ inputs.release-to-publish }}
+    - name: Checkout the code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        ref: refs/tags/${{ inputs.release-to-publish }}
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -48,4 +52,4 @@ runs:
       uses: actions/cache@v4
       with:
         path: ~/.npm
-        key: ${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+        key: ${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
