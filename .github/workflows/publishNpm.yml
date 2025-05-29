@@ -3,18 +3,18 @@ on:
   release:
     types: [published]
   workflow_run:
-    workflows: [runTests]
+    workflows: [Test package before publishing]
     branches: [main]
     types:
       - completed
 jobs:
   on-success:
     name: Publish package to npm
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v4
       # Setup .npmrc file to publish to npm
