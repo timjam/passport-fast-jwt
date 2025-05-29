@@ -1,9 +1,9 @@
 import { use } from "chai"
 import chaiPassportStrategy from "chai-passport-strategy"
+import { DecodedJwt } from "fast-jwt"
 
-import { fromAuthHeaderAsBearerToken, fromHeader } from "../src/extractors"
-import { JwtStrategy } from "../src/strategy"
-import { JwtSections } from "../src/types"
+import { fromAuthHeaderAsBearerToken, fromHeader } from "../../src/extractors"
+import { JwtStrategy } from "../../src/strategy"
 import {
   createTestKeys,
   createTestTokens,
@@ -13,7 +13,7 @@ import {
   rsaNoPassVerify,
   rsaVerify,
   testTokenPayload,
-} from "./testUtils/keyFileUtils"
+} from "../testUtils/keyFileUtils"
 
 const chai = use(chaiPassportStrategy)
 
@@ -194,7 +194,7 @@ describe("JWT Strategy tests", () => {
   })
 
   describe("Verifier with complete set to true correctly returns all sections", () => {
-    let sections: JwtSections | null = null
+    let sections: DecodedJwt | null = null
 
     before(() => {
       const strategy = new JwtStrategy(
@@ -230,7 +230,7 @@ describe("JWT Strategy tests", () => {
   })
 
   describe("Verifier with complete set to false returns only the payload and others are empty", () => {
-    let sections: JwtSections | null = null
+    let sections: DecodedJwt | null = null
 
     before(() => {
       const strategy = new JwtStrategy(
@@ -267,7 +267,7 @@ describe("JWT Strategy tests", () => {
   })
 
   describe("Custom callback", () => {
-    let sections: JwtSections | null = null
+    let sections: DecodedJwt | null = null
 
     before(() => {
       const strategy = new JwtStrategy(

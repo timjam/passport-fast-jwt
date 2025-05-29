@@ -7,7 +7,7 @@ import {
   fromExtractors,
   fromHeader,
   fromQueryParam,
-} from "../src/extractors"
+} from "../../src/extractors"
 
 const TOKEN_HEADER = "token_header"
 const INVALID_TOKEN_HEADER = "invalid_header"
