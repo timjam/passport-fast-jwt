@@ -44,8 +44,10 @@ type AfterVerifyCallback = (
 const jwtVerifier = FastJWT.createVerifier({ ...verifierOptions })
 const tokenExtractor = Extractors.fromHeader("token-header")
 
-passport.use(
-  new JwtStrategy(jwtVerifier, tokenExtractor, (sections, done, req) => {
+const JwtStrategy = new JwtStrategy(
+  jwtVerifier,
+  tokenExtractor,
+  (sections, done, req) => {
     User.findOne({ id: sections.payload.sub }, (error, user) => {
       if (error) {
         return done(err, false)
@@ -55,8 +57,10 @@ passport.use(
       }
       return done(null, user)
     })
-  }),
+  },
 )
+
+passport.use(JwtStrategy)
 ```
 
 ### Verification callback
