@@ -4,32 +4,12 @@ import FastJWT from "fast-jwt"
 import Passport from "passport"
 import PassportStrategy from "passport-strategy"
 
-import {
-  AfterVerifyCallback,
-  CArgs,
-  TokenExtractor,
-  Verifier,
-  VerifierOptions,
-} from "./types"
+import { AfterVerifyCallback, TokenExtractor, Verifier } from "./types"
 
 /**
  * @example
  * ```typescript
  * passport.use(new JwtStrategy(jwtVerifier, tokenExtractor, (sections, done, req) => {
- *   User.findOne({ id: sections.payload.sub }, (error, user) => {
- *     if (error) {
- *       return done(err, false)
- *     }
- *     if (!user) {
- *       return done(null, false, "User not found", 404)
- *     }
- *     return done(null, user)
- *   })
- * }))
- *
- * // *-----------* OR *-----------*
- *
- * passport.use(new JwtStrategy(verifierOptions, tokenExtractor, (sections, done, req) => {
  *   User.findOne({ id: sections.payload.sub }, (error, user) => {
  *     if (error) {
  *       return done(err, false)
@@ -50,50 +30,15 @@ export class JwtStrategy extends PassportStrategy.Strategy {
   private afterVerifiedCb: AfterVerifyCallback
 
   constructor(
-    verifierOptions: VerifierOptions,
-    tokenExtractor: TokenExtractor,
-    afterVerifiedCb: AfterVerifyCallback,
-  )
-  constructor(
     jwtVerifier: Verifier,
     tokenExtractor: TokenExtractor,
     afterVerifiedCb: AfterVerifyCallback,
-  )
-  constructor(...args: CArgs) {
+  ) {
     super()
     this.name = "jwt"
-
-    if (typeof args[0] === "function") {
-      this.verifyJwt = args[0]
-    } else {
-      const { key, ...opts } = args[0]
-
-      /**
-       * Just making TS happy here
-       *
-       * If algorithms is "none", the key must not be provided
-       */
-      if (opts.algorithms?.includes("none")) {
-        if (key) {
-          console.warn(
-            "Key was provided even though algorithms include none. Fast JWT says that if no algorithm is used, they key must not be provided. Thus the provided key parameter will be removed from verifier options",
-          )
-        }
-        this.verifyJwt = FastJWT.createVerifier({ ...opts })
-      } else if (typeof key === "string" || key instanceof Buffer) {
-        this.verifyJwt = FastJWT.createVerifier({
-          ...opts,
-          key: key as string | Buffer,
-        })
-      } else {
-        this.verifyJwt = FastJWT.createVerifier({
-          ...opts,
-          key: key as FastJWT.KeyFetcher,
-        })
-      }
-    }
-    this.extractToken = args[1]
-    this.afterVerifiedCb = args[2]
+    this.verifyJwt = jwtVerifier
+    this.extractToken = tokenExtractor
+    this.afterVerifiedCb = afterVerifiedCb
   }
 
   private createSections(
